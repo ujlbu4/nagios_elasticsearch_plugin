@@ -50,7 +50,7 @@ def parse_args(argv):
     arg_parser.add_argument("--aggregation_name", action="store", help="aggregation name")
     arg_parser.add_argument("--aggregation_type", action="store", choices=("significant_terms",), help="aggregation type")
     arg_parser.add_argument("--aggregation_field", action="store", help="the name of the field to aggregate")
-    arg_parser.add_argument("--aggregation_result_bucket_key", action="append", help="specify aggregation bucket keys (repeatable argument)")
+    arg_parser.add_argument("--aggregation_result_bucket_key", action="append",  help="specify aggregation bucket keys (repeatable argument)")
     arg_parser.add_argument("--aggregation_result_type", action="store", choices=("count", "percentage"), default="count",
                             help="aggregation result type (default: count)")
     arg_parser.add_argument("-d", "--include_day", action="store_true", help="include the day in elasticsearch index")
@@ -59,7 +59,20 @@ def parse_args(argv):
     arg_parser.add_argument("--debug", action="store_true", default=False, help="print debug messages")
     arg_parser.add_argument("--version", action="version", version='%(prog)s {version}'.format(version=version))
 
-    return arg_parser.parse_args(argv)
+    args = arg_parser.parse_args(argv)
+
+    def flat_bucket_keys(args):
+        # handle range specific items (for example: `aggregation_result_bucket_key=500..504`)
+        if args.aggregation_result_bucket_key:
+            for bucket in list(filter(lambda x: x.find("..") > 0, args.aggregation_result_bucket_key)):
+                args.aggregation_result_bucket_key.remove(bucket)
+
+                range_start, range_finish = list(map(int, bucket.split("..")))
+                args.aggregation_result_bucket_key.extend(list(map(str, list(range(range_start, range_finish+1)))))
+
+    flat_bucket_keys(args)
+
+    return args
 
 
 def build_indices(indices_count=2, index_pattern="{prefix}-{yyyy}.{mm}.{dd}", index_prefix="logstash"):

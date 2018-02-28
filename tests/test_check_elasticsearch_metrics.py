@@ -168,6 +168,51 @@ class TestHandleElasticResponse:
 
         return response, request.param
 
+    @pytest.fixture(scope="class",
+                    params=[
+                        {
+                            "args": [
+                                "--aggregation_result_bucket_key", "500..504",
+                                "--aggregation_result_type", "count"
+                            ],
+                            "expected_result": ["500", "501", "502", "503", "504"]
+                        },
+                        {
+                            "args": [
+                                "--aggregation_result_bucket_key", "500",
+                                "--aggregation_result_type", "percentage"
+                            ],
+                            "expected_result": ["500"]
+                        },
+                        {
+                            "args": [
+                                "--aggregation_result_bucket_key", "200",
+                                "--aggregation_result_bucket_key", "500..504",
+                                "--aggregation_result_type", "percentage"
+                            ],
+                            "expected_result": ["200", "500", "501", "502", "503", "504"]
+                        }
+                    ],
+                    ids=["aggregation bucket key is range",
+                         "aggregation bucket key single item",
+                         "aggregation bucket key mix of range and single item",
+                         ])
+    def aggregation_range_bucket_key_fixture(self, request):
+        # required args for script parsing
+        args = ["--aggregation_name", "elastic-plugin-tests",
+                "--aggregation_type", "significant_terms",
+                "--aggregation_field", "response.keyword",
+                "--critical", "10",
+                "--warning", "5",
+                "--host", "test.me",
+                "--seconds", "600",
+                "--query", "test"]
+        args.extend(request.param['args'])
+
+        request.param["args"] = args
+
+        return request.param
+
     def test_has_aggregation_by_count(self, aggregation_fixture):
         response, req_params = aggregation_fixture
         args = req_params["args"]
@@ -175,6 +220,14 @@ class TestHandleElasticResponse:
 
         result = check_elasticsearch_metrics.handle_elastic_response(args, response)
         result.should.be.equal(expected_result)
+
+    def test_aggregation_result_bucket_key_special(self, aggregation_range_bucket_key_fixture):
+        req_params = aggregation_range_bucket_key_fixture
+        args = req_params["args"]
+        expected_result = req_params["expected_result"]
+
+        result = check_elasticsearch_metrics.parse_args(args)
+        result.aggregation_result_bucket_key.should.be.equal(expected_result)
 
 
 class TestGetAlertStatus:
