@@ -121,12 +121,20 @@ class TestHandleElasticResponse:
                                 "aggregation_result_type": "percentage"
                             },
                             "expected_result": 60.94
+                        },
+                        {
+                            "args": {
+                                "aggregation_result_bucket_key": None,
+                                "aggregation_result_type": "count"
+                            },
+                            "expected_result": 260
                         }
                     ],
                     ids=["single result-bucket-key, count result-type",
                          "multi result-bucket-key, count result-type",
                          "single result-bucket-key, percentage result-type",
-                         "multi result-bucket-key, percentage result-type", ])
+                         "multi result-bucket-key, percentage result-type",
+                         "aggregation result bucket key is absent"])
     def aggregation_fixture(self, request):
         args = argparse.Namespace(aggregation_name="elastic-plugin-tests",
                                   aggregation_type="significant_terms",

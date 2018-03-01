@@ -50,7 +50,7 @@ def parse_args(argv):
     arg_parser.add_argument("--aggregation_name", action="store", help="aggregation name")
     arg_parser.add_argument("--aggregation_type", action="store", choices=("significant_terms",), help="aggregation type")
     arg_parser.add_argument("--aggregation_field", action="store", help="the name of the field to aggregate")
-    arg_parser.add_argument("--aggregation_result_bucket_key", action="append",  help="specify aggregation bucket keys (repeatable argument)")
+    arg_parser.add_argument("--aggregation_result_bucket_key", action="append", help="specify aggregation bucket keys (repeatable argument)")
     arg_parser.add_argument("--aggregation_result_type", action="store", choices=("count", "percentage"), default="count",
                             help="aggregation result type (default: count)")
     arg_parser.add_argument("-d", "--include_day", action="store_true", help="include the day in elasticsearch index")
@@ -68,7 +68,7 @@ def parse_args(argv):
                 args.aggregation_result_bucket_key.remove(bucket)
 
                 range_start, range_finish = list(map(int, bucket.split("..")))
-                args.aggregation_result_bucket_key.extend(list(map(str, list(range(range_start, range_finish+1)))))
+                args.aggregation_result_bucket_key.extend(list(map(str, list(range(range_start, range_finish + 1)))))
 
     flat_bucket_keys(args)
 
@@ -155,8 +155,13 @@ def handle_elastic_response(args, response):
         logger.debug(res_aggregation)
 
         # does not metter result_type is percentage or count
-        for field in args.aggregation_result_bucket_key:
-            result += res_aggregation.get(field).get(args.aggregation_result_type) if res_aggregation.get(field) else 0
+        if args.aggregation_result_bucket_key is None:
+            # if there is no aggregation_result_bucket_key, so take the first one
+            max_aggregated_value_tuple = list(res_aggregation.items())[0]
+            result = max_aggregated_value_tuple[1][args.aggregation_result_type]
+        else:
+            for field in args.aggregation_result_bucket_key:
+                result += res_aggregation.get(field).get(args.aggregation_result_type) if res_aggregation.get(field) else 0
     else:
         result = response.hits.total
 
